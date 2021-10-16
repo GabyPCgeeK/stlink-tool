@@ -18,6 +18,28 @@
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
   OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+#ifndef _STLINK_H
+#define _STLINK_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <libusb.h>
+
+#ifdef WINDOWS
+  #ifndef bool
+    #define bool unsigned char
+  #endif
+  #ifndef true
+    #define true 1
+  #endif
+
+  #ifndef false
+    #define false 0
+  #endif
+#else
+  #include <stdbool.h>
+#endif
 
 enum DeviceStatus {
   OK = 0x00,
@@ -54,21 +76,40 @@ enum DeviceState {
 
 enum BlTypes {
     STLINK_BL_V2 = 0,
+    STLINK_BL_V21,
     STLINK_BL_V3
 };
 
-struct STLinkInfo {
-  uint8_t firmware_key[16];
-  uint8_t id[12];
-  uint8_t stlink_version;
-  uint8_t jtag_version;
-  uint8_t swim_version;
-  uint16_t loader_version;
-    libusb_context *stinfo_usb_ctx;
-    libusb_device_handle *stinfo_dev_handle;
-    unsigned char stinfo_ep_in;
-    unsigned char stinfo_ep_out;
-    enum BlTypes stinfo_bl_type;
+enum ConfigTypes {
+  confVERSION = 0,
+  confST_TYPE,
+  confUSB_CUR,
+  confMSD_NAME,
+  confMBED_NAME,
+  confDFU_OPT,
+  confDYN_OPT,
+  confMCO_OUT,
+  confSTARTUP
+};
+
+enum ModifyAction {
+  modCOPY = 0,
+  modADD,
+  modREMOVE
+};
+
+struct STLinkConfig {
+  enum ModifyAction modify[9];
+  uint8_t raw_config[0x40];
+  uint16_t soft_version;
+  char stlink_type;
+  uint16_t usb_current;
+  char volume[12];
+  char mbed_name[5];
+  uint8_t dfu_option;
+  char dynamic_option;
+  uint8_t mco_output;
+  uint8_t startup_pref;
 };
 
 struct DFUStatus {
@@ -78,6 +119,47 @@ struct DFUStatus {
   unsigned char iString : 8;
 };
 
+struct STLinkInfo {
+  uint8_t firmware_key[16];
+  uint8_t anti_clone[16];
+  uint8_t id[12];
+  struct STLinkConfig config;
+
+  union {
+    struct {
+      uint16_t swim_version: 6;
+      uint16_t jtag_version: 6;
+      uint16_t stlink_version: 4;
+    };
+    uint16_t software_version;
+  } __attribute__((packed));
+
+  uint16_t bootloader_pid;
+  union {
+    struct {
+      uint32_t hardware_flags: 24;
+      uint32_t hardware_minor: 4;
+      uint32_t hardware_mayor: 4;
+    };
+    uint32_t hardware_version;
+  } __attribute__((packed));
+  uint8_t flash_size;
+  uint8_t reported_flash_size;
+  uint8_t reserved_flash;
+  uint8_t mode;
+  libusb_context *stinfo_usb_ctx;
+  libusb_device_handle *stinfo_dev_handle;
+  unsigned char stinfo_ep_in;
+  unsigned char stinfo_ep_out;
+  enum BlTypes stinfo_bl_type;
+  char* decrypt_key;
+};
+
+extern char* st_types[];
+
+int stlink_flash_config_area(struct STLinkInfo *info, struct STLinkConfig *config);
+char* stlink_get_dev_config(struct STLinkConfig *config, enum ConfigTypes config_type);
+
 int stlink_dfu_mode(libusb_device_handle *dev_handle, int trigger);
 int stlink_read_info(struct STLinkInfo *info);
 int stlink_current_mode(struct STLinkInfo *info);
@@ -85,5 +167,7 @@ int stlink_dfu_download(struct STLinkInfo *stlink_info,
 			unsigned char *data,
 			const size_t data_len,
 			const uint16_t wBlockNum);
-int stlink_flash(struct STLinkInfo *stlink_info, const char *filename);
+int stlink_flash(struct STLinkInfo *stlink_info, const char *filename, bool decrypt, bool save);
 int stlink_exit_dfu(struct STLinkInfo *info);
+
+#endif //_STLINK_H

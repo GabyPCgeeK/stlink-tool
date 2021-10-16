@@ -21,7 +21,11 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <arpa/inet.h>
+#ifdef WINDOWS
+  #include <Winsock2.h>
+#else
+  #include <arpa/inet.h>
+#endif
 
 #include "../tiny-AES-c/aes.h"
 #include "crypto.h"
@@ -50,6 +54,24 @@ void my_encrypt(unsigned char *key, unsigned char *data, unsigned int length) {
 
   for (i = 0; i < length; i += 16) {
     AES_ECB_encrypt(&ctx, data+i);
+  }
+  convert_to_big_endian(data, length);
+}
+
+void my_decrypt(unsigned char *key, unsigned char *data, unsigned int length) {
+  struct AES_ctx ctx;
+  unsigned char key_be[16];
+  size_t i;
+
+  memcpy(key_be, key, 16);
+  convert_to_big_endian(key_be, 16);
+
+  AES_init_ctx(&ctx, key_be);
+
+  convert_to_big_endian(data, length);
+
+  for (i = 0; i < length; i += 16) {
+    AES_ECB_decrypt(&ctx, data+i);
   }
   convert_to_big_endian(data, length);
 }

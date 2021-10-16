@@ -20,3 +20,4 @@
 */
 
 void my_encrypt(unsigned char *key, unsigned char *data, unsigned int length);
+void my_decrypt(unsigned char *key, unsigned char *data, unsigned int length);
