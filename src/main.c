@@ -51,6 +51,7 @@ enum OptionsVal {
   optSAVE_DEC,
   optST_TYPE,
   optVERSION,
+  optFIX,
   optUSB_CUR,
   optMSD_NAME,
   optMBED_NAME,
@@ -78,6 +79,9 @@ static struct option long_options[] = {
 
   {"ver",            1, 0,  optVERSION},
   {"v",              1, 0,  optVERSION},
+
+  {"fix",            0, 0,  optFIX},
+  {"f",              0, 0,  optFIX},
    
   {"usb_cur",        1, 0,  optUSB_CUR},
   {"rm_usb_cur",     0, 0,  optUSB_CUR},
@@ -115,7 +119,8 @@ void print_help(char *argv[]) {
     if (st_types[i])
       printf("\t\t\t  %c for \"%s\"\n", (char)i, st_types[i]);
   }
-  printf("  -v, --ver S.J.X\tChange reported STLink sersion.\n\t\t\t  S is STLink version, J is JTAG version,\n\t\t\t  X is SWIM or MSD version.\n\n");
+  printf("  -v, --ver S.J.X\tChange reported STLink sersion.\n\t\t\t  S is STLink version, J is JTAG version,\n\t\t\t  X is SWIM or MSD version.\n");
+  printf("  -f, --fix\t\tFlash Anti-Clone Tag and Firmware Exists/EOF Tag\n\n");
   printf("Options for Modifying Device Config (Only for STLink v2 and up):\n");
   printf("  --usb_cur CURRENT\tSet the MaxPower reported in USB Descriptor\n\t\t\tto CURRENT(mA)\n");
   printf("  --msd_name VOLUME\tSet the volsume name of the MSD drive to VOLUME.\n");
@@ -133,7 +138,7 @@ int main(int argc, char *argv[]) {
   struct STLinkInfo info;
   struct STLinkConfig config;
   int res = EXIT_FAILURE, i, opt;
-  bool probe = false, decrypt = false, save_decrypted = false, flash_config = false;
+  bool probe = false, decrypt = false, save_decrypted = false, flash_config = false, fix_config = false;
   char* boot_ver = "";
   char ver_type = 'S';
 
@@ -174,6 +179,9 @@ int main(int argc, char *argv[]) {
           config.modify[confVERSION] = modADD;
           config.soft_version = (atoi(st_v) & 0xF) << 12 | (atoi(jt_v) & 0x3F) << 6 | (atoi(sw_v) & 0x3F);
         }
+        break;
+      case optFIX:
+        fix_config = true;
         break;
       case optUSB_CUR:
         if (optarg && strlen(optarg) > 0) {
@@ -443,9 +451,9 @@ rescan:
 
     if (do_load)
       if (stlink_flash(&info, argv[optind], decrypt, save_decrypted))
-        flash_config = false;
+        flash_config = fix_config = false;
 
-    if (flash_config) {
+    if (flash_config || fix_config) {
       stlink_flash_config_area(&info, &config);
     }
     stlink_exit_dfu(&info);

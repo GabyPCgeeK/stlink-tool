@@ -21,6 +21,7 @@ Options:
   -v, --ver S.J.X       Change reported STLink sersion.
                           S is STLink version, J is JTAG version,
                           X is SWIM or MSD version.
+  -f, --fix             Flash Anti-Clone Tag and Firmware Exists/EOF Tag
 
 Options for Modifying Device Config (Only for STLink v2 and up):
   --usb_cur CURRENT     Set the MaxPower reported in USB Descriptor
@@ -131,5 +132,6 @@ make
 ST's firmware upload protocol is USB's DFU protocol with some twists. Every DFU command is issued with the 0xF3 prefix, and the command set does not exactly match USB's.
 
 Some documentation :
-* http://www.st.com/content/ccc/resource/technical/document/application_note/6a/17/92/02/58/98/45/0c/CD00264379.pdf/files/CD00264379.pdf/jcr:content/translations/en.CD00264379.pdf
-* http://www.usb.org/developers/docs/devclass_docs/DFU_1.1.pdf
+
+* <http://www.st.com/content/ccc/resource/technical/document/application_note/6a/17/92/02/58/98/45/0c/CD00264379.pdf/files/CD00264379.pdf/jcr:content/translations/en.CD00264379.pdf>
+* <http://www.usb.org/developers/docs/devclass_docs/DFU_1.1.pdf>
